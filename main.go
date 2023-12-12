@@ -60,21 +60,38 @@ func main() {
 	app := fiber.New()
 	// get employee
 	app.Get("/employee", func(c *fiber.Ctx) error {
-    query := bson.D{{}}
-   cursor, err:= mg.db.Collection("employees").Find(c.Context(), query)
-   if err != nil {
-	return c.Status(400).SendString(err.Error())
-   }
-   var employees []Employees = make([]Employees, 0)
-   if err:=cursor.All(c.Context(),&employees);err!=nil{
-	return c.Status(500).SendStatus(err.Error())
-   }
-   return c.JSON(employees)
+		query := bson.D{{}}
+		cursor, err := mg.db.Collection("employees").Find(c.Context(), query)
+		if err != nil {
+			return c.Status(400).SendString(err.Error())
+		}
+		var employees []Employee = make([]Employee, 0)
+		if err := cursor.All(c.Context(), &employees); err != nil {
+			return c.Status(500).SendString(err.Error())
+		}
+		return c.JSON(employees)
 
-	}
-)
+	})
 	// create employee
 	app.Post("/employee", func(c *fiber.Ctx) error {
+		collection := mg.db.Collection("employees")
+		employee := new(Employee)
+		// if any error exist
+		if err := c.BodyParser(employee); err != nil {
+			return c.Status(400).SendString(err.Error())
+		}
+		employee.ID = ""
+		res, err := collection.InsertOne(c.Context(), employee)
+		if err != nil {
+			c.Status(500).SendString(err.Error())
+		}
+		// filter
+		filter := bson.D{{Key: "_id", Value: res.InsertedID}}
+		createdRecord := collection.FindOne(c.Context(), filter)
+
+		createdEmployee := &Employee{}
+		createdRecord.Decode(createdEmployee)
+		return c.Status(201).JSON(createdEmployee)
 
 	})
 	// update employee
