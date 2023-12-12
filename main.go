@@ -121,7 +121,20 @@ func main() {
 	})
 	// delete employee
 	app.Delete("/employee/:id", func(c *fiber.Ctx) error {
-
+		id := c.Params("id")
+		oid, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return c.SendStatus(400)
+		}
+		query := bson.D{{Key: "_id", Value: oid}}
+		result, err := mg.db.Collection("employees").DeleteOne(c.Context(), &query)
+		if err != nil {
+			return c.SendStatus(400)
+		}
+		if result.DeletedCount < 1 {
+			return c.SendStatus(404)
+		}
+		return c.Status(204).JSON("data deleted successful")
 	})
-
+	log.Fatal(app.Listen(":7000"))
 }
