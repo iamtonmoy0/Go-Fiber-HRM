@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,12 +24,12 @@ var mg MongoInstance
 const dbName = "Go-Fiber-hrms"
 
 // connection string
-var mongoURI = os.Getenv("DB")
+var mongoURI = "mongodb://localhost:27017" + dbName
 
 // struct
 type Employee struct {
-	ID     string  `json:"id",omitempty bson:"_id" ,omitempty`
-	Name   string  `json:"name" `
+	ID     string  `json:"id,omitempty" bson:"_id,omitempty"`
+	Name   string  `json:"name"`
 	Salary float64 `json:"salary"`
 	Age    float64 `json:"age"`
 }
@@ -38,6 +37,10 @@ type Employee struct {
 // database connection function
 func Connect() error {
 	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 
@@ -59,7 +62,12 @@ func main() {
 		log.Fatal(err)
 	}
 	app := fiber.New()
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.JSON("hello world")
+	})
 	// get employee
+
 	app.Get("/employee", func(c *fiber.Ctx) error {
 		query := bson.D{{}}
 		cursor, err := mg.db.Collection("employees").Find(c.Context(), query)
